@@ -29,7 +29,6 @@ public sealed class IdentityService(
             throw new Application.Errors.ConflictException("El email ya está registrado.");
         }
 
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         var applicationUser = new ApplicationUser
         {
             Id = userId,
@@ -49,7 +48,6 @@ public sealed class IdentityService(
             ThrowIdentityFailure(roleResult);
         }
 
-        await transaction.CommitAsync(cancellationToken);
     }
 
     public async Task<Guid?> ValidateCredentialsAsync(
@@ -96,7 +94,6 @@ public sealed class IdentityService(
             throw new Application.Errors.ConflictException("El email ya está registrado.");
         }
 
-        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         var emailResult = await userManager.SetEmailAsync(applicationUser, newEmail.Value);
         if (!emailResult.Succeeded)
         {
@@ -109,7 +106,6 @@ public sealed class IdentityService(
             ThrowIdentityFailure(userNameResult);
         }
 
-        await transaction.CommitAsync(cancellationToken);
     }
 
     private static void ThrowIdentityFailure(IdentityResult result)

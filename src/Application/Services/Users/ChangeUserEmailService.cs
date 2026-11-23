@@ -47,8 +47,18 @@ public sealed class ChangeUserEmailService(
             throw new ConflictException("Ya existe un usuario con este email.");
         }
 
-        await identity.ChangeEmailAsync(user.Id, newEmail, cancellationToken);
-        user.ChangeEmail(newEmail);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await identity.ChangeEmailAsync(user.Id, newEmail, cancellationToken);
+            user.ChangeEmail(newEmail);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+        }
+        catch
+        {
+            await unitOfWork.RollbackTransactionAsync(CancellationToken.None);
+            throw;
+        }
     }
 }

@@ -39,8 +39,18 @@ public sealed class RegisterUserService(
             request.PhoneNumber is null ? null : new PhoneNumber(request.PhoneNumber),
             request.Role);
 
-        await users.AddAsync(user, cancellationToken);
-        await identity.CreateAccountAsync(user.Id, email, request.Password, request.Role, cancellationToken);
-        await unitOfWork.SaveChangesAsync(cancellationToken);
+        await unitOfWork.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            await users.AddAsync(user, cancellationToken);
+            await identity.CreateAccountAsync(user.Id, email, request.Password, request.Role, cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+            await unitOfWork.CommitTransactionAsync(cancellationToken);
+        }
+        catch
+        {
+            await unitOfWork.RollbackTransactionAsync(CancellationToken.None);
+            throw;
+        }
     }
 }

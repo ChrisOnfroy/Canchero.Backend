@@ -1,5 +1,6 @@
 using Application.DTOs.Courts.Responses;
 using Domain.Entities;
+using Domain.ValueObjects;
 
 namespace Application.Mappers;
 
@@ -20,4 +21,24 @@ public static class CourtMapper
             court.PricePerHour.Currency,
             court.IsIndoor,
             court.Status);
+
+    public static NearbyCourtResponse ToNearbyResponse(
+        this Court court,
+        Venue venue,
+        Distance distance,
+        long? slotPrice)
+        => new(
+            court.Id,
+            court.Name,
+            venue.Id,
+            venue.Name,
+            venue.Address.FullAddress,
+            distance.Meters,
+            distance.Kilometers,
+            court.SportType,
+            court.SurfaceType,
+            court.IsIndoor,
+            court.PricePerHour.Amount,
+            court.PricePerHour.Currency,
+            slotPrice);
 }

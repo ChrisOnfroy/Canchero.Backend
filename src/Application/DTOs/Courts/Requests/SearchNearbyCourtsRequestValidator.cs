@@ -11,6 +11,16 @@ public sealed class SearchNearbyCourtsRequestValidator : AbstractValidator<Searc
     public SearchNearbyCourtsRequestValidator(IDateTimeProvider dateTimeProvider)
     {
         RuleFor(request => request.ActorUserId).NotEmpty();
+        RuleFor(request => request)
+            .Must(request => request.LocationText is not null
+                ? request.Latitude is null && request.Longitude is null
+                : request.Latitude.HasValue && request.Longitude.HasValue)
+            .WithMessage("Indica una ubicación en texto o las coordenadas completas, pero no ambas.");
+        RuleFor(request => request.LocationText)
+            .Must(location => location is not null
+                && location.Trim().Length is >= 3 and <= 200)
+            .When(request => request.LocationText is not null)
+            .WithMessage("La ubicación debe tener entre 3 y 200 caracteres.");
         RuleFor(request => request.RadiusKm).InclusiveBetween(0.01, 100);
         RuleFor(request => request.Page).GreaterThanOrEqualTo(1);
         RuleFor(request => request.PageSize).InclusiveBetween(1, 50);

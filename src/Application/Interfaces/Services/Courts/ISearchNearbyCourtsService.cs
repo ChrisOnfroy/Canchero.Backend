@@ -1,4 +1,3 @@
-using Application.Common;
 using Application.DTOs.Courts.Requests;
 using Application.DTOs.Courts.Responses;
 
@@ -9,7 +8,7 @@ namespace Application.Interfaces.Services.Courts;
 /// </summary>
 public interface ISearchNearbyCourtsService
 {
-    Task<PagedResult<NearbyCourtResponse>> ExecuteAsync(
+    Task<SearchNearbyCourtsResponse> ExecuteAsync(
         SearchNearbyCourtsRequest request,
         CancellationToken cancellationToken = default);
 }

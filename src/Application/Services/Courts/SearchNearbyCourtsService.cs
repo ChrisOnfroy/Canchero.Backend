@@ -2,9 +2,11 @@ using Application.Common;
 using Application.DTOs.Courts.Requests;
 using Application.DTOs.Courts.Responses;
 using Application.Errors;
+using Application.Interfaces.Geocoding;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Courts;
 using Application.Services.Common;
+using Application.Mappers;
 using Domain.ValueObjects;
 using FluentValidation;
 
@@ -18,16 +20,37 @@ public sealed class SearchNearbyCourtsService(
     ICourtRepository courts,
     IVenueRepository venues,
     IReservationRepository reservations,
+    IGeocodingService geocoding,
     IValidator<SearchNearbyCourtsRequest> validator) : ISearchNearbyCourtsService
 {
-    public async Task<PagedResult<NearbyCourtResponse>> ExecuteAsync(
+    public async Task<SearchNearbyCourtsResponse> ExecuteAsync(
         SearchNearbyCourtsRequest request,
         CancellationToken cancellationToken = default)
     {
         await validator.ValidateAndThrowAsync(request, cancellationToken);
         await ServiceAuthorization.GetActiveActorAsync(users, request.ActorUserId, cancellationToken);
 
-        var coordinates = new Coordinates(request.Latitude, request.Longitude);
+        Coordinates coordinates;
+        string? formattedAddress;
+        if (request.LocationText is not null)
+        {
+            var geocodingResult = await geocoding.GeocodeAsync(
+                request.LocationText.Trim(),
+                cancellationToken);
+            if (geocodingResult is null)
+            {
+                throw new NotFoundException("No se encontró la ubicación indicada.");
+            }
+
+            coordinates = geocodingResult.Coordinates;
+            formattedAddress = geocodingResult.FormattedAddress;
+        }
+        else
+        {
+            coordinates = new Coordinates(request.Latitude!.Value, request.Longitude!.Value);
+            formattedAddress = null;
+        }
+
         Money? maxPrice = request.MaxPricePerHour is null
             ? null
             : new Money(request.MaxPricePerHour.Value, request.PriceCurrency);
@@ -74,20 +97,7 @@ public sealed class SearchNearbyCourtsService(
 
             long? slotPrice = slot is null ? null : court.CalculatePrice(slot).Amount;
             results.Add((
-                new NearbyCourtResponse(
-                    court.Id,
-                    court.Name,
-                    venue.Id,
-                    venue.Name,
-                    venue.Address.FullAddress,
-                    distance.Meters,
-                    distance.Kilometers,
-                    court.SportType,
-                    court.SurfaceType,
-                    court.IsIndoor,
-                    court.PricePerHour.Amount,
-                    court.PricePerHour.Currency,
-                    slotPrice),
+                court.ToNearbyResponse(venue, distance, slotPrice),
                 distance.Meters,
                 court.PricePerHour.Amount));
         }
@@ -103,10 +113,15 @@ public sealed class SearchNearbyCourtsService(
             .Select(item => item.Response)
             .ToArray();
 
-        return new PagedResult<NearbyCourtResponse>(
+        var pagedResults = new PagedResult<NearbyCourtResponse>(
             pageItems,
             request.Page,
             request.PageSize,
             orderedResults.Length);
+        return new SearchNearbyCourtsResponse(
+            coordinates.Latitude,
+            coordinates.Longitude,
+            formattedAddress,
+            pagedResults);
     }
 }

@@ -7,8 +7,8 @@ namespace Application.DTOs.Courts.Requests;
 /// </summary>
 public sealed record SearchNearbyCourtsRequest(
     Guid ActorUserId,
-    double Latitude,
-    double Longitude,
+    double? Latitude = null,
+    double? Longitude = null,
     double RadiusKm = 10,
     SportType? SportType = null,
     SurfaceType? SurfaceType = null,
@@ -18,4 +18,5 @@ public sealed record SearchNearbyCourtsRequest(
     DateTimeOffset? SlotStart = null,
     DateTimeOffset? SlotEnd = null,
     int Page = 1,
-    int PageSize = 10);
+    int PageSize = 10,
+    string? LocationText = null);

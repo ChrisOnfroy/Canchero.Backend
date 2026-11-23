@@ -9,6 +9,10 @@ namespace Domain.Entities;
 /// </summary>
 public sealed class Venue : Entity
 {
+    private Venue()
+    {
+    }
+
     public Venue(
         Guid ownerId,
         string name,

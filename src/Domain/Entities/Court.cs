@@ -10,6 +10,10 @@ namespace Domain.Entities;
 /// </summary>
 public sealed class Court : Entity
 {
+    private Court()
+    {
+    }
+
     public Court(
         Guid venueId,
         string name,

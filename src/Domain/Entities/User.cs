@@ -9,6 +9,10 @@ namespace Domain.Entities;
 /// </summary>
 public sealed class User : Entity
 {
+    private User()
+    {
+    }
+
     public User(PersonName name, Email email, PhoneNumber? phoneNumber, UserRole role = UserRole.Customer)
         : base()
     {

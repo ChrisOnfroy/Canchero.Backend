@@ -10,6 +10,10 @@ namespace Domain.Entities;
 /// </summary>
 public sealed class Reservation : Entity
 {
+    private Reservation()
+    {
+    }
+
     public Reservation(Guid userId, Guid courtId, TimeSlot timeSlot, Money totalPrice)
         : base()
     {

@@ -2,7 +2,6 @@ using Application.Interfaces.Auth;
 using Domain.Enums;
 using Domain.Errors;
 using Domain.ValueObjects;
-using Infrastructure.Context;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -12,8 +11,7 @@ namespace Infrastructure.Identity;
 /// Implementa la administración de cuentas mediante ASP.NET Core Identity.
 /// </summary>
 public sealed class IdentityService(
-    UserManager<ApplicationUser> userManager,
-    AppDbContext context) : IIdentityService
+    UserManager<ApplicationUser> userManager) : IIdentityService
 {
     public async Task CreateAccountAsync(
         Guid userId,
@@ -47,7 +45,6 @@ public sealed class IdentityService(
         {
             ThrowIdentityFailure(roleResult);
         }
-
     }
 
     public async Task<Guid?> ValidateCredentialsAsync(
@@ -105,7 +102,6 @@ public sealed class IdentityService(
         {
             ThrowIdentityFailure(userNameResult);
         }
-
     }
 
     private static void ThrowIdentityFailure(IdentityResult result)

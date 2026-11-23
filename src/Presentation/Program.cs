@@ -12,7 +12,26 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-var builder = WebApplication.CreateBuilder(args);
+var configuredEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+    ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    // Al ejecutar el binario directamente (por ejemplo, desde Rider), carga por defecto
+    // la configuración local. Los despliegues deben declarar explícitamente su entorno.
+    EnvironmentName = string.IsNullOrWhiteSpace(configuredEnvironment)
+        ? Environments.Development
+        : configuredEnvironment
+});
+
+if (builder.Environment.IsDevelopment()
+    && string.IsNullOrWhiteSpace(builder.Configuration["Jwt:SecretKey"]))
+{
+    builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
+    {
+        ["Jwt:SecretKey"] = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48))
+    });
+}
 
 builder.Services
     .AddApplication()
@@ -24,11 +43,15 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    options.AddPolicy("ConfiguredOrigins", policy =>
     {
-        policy.AllowAnyOrigin()
+        var origins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+        if (origins.Length > 0)
+        {
+            policy.WithOrigins(origins)
             .AllowAnyMethod()
             .AllowAnyHeader();
+        }
     });
 });
 
@@ -131,8 +154,11 @@ if (app.Configuration.GetValue<bool>("Swagger:Enabled"))
     });
 }
 
-app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+app.UseCors("ConfiguredOrigins");
 app.UseAuthentication();
 app.UseAuthorization();
 

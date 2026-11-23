@@ -27,7 +27,9 @@ public static class DependencyInjection
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException(
-                "Falta la cadena de conexión ConnectionStrings:DefaultConnection.");
+                "Falta ConnectionStrings:DefaultConnection. Configura la variable "
+                + "ConnectionStrings__DefaultConnection o, para desarrollo local, inicia con "
+                + "ASPNETCORE_ENVIRONMENT=Development y configura appsettings.Development.json.");
         }
 
         services.AddDbContext<AppDbContext>(options =>

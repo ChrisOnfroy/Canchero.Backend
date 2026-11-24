@@ -1,3 +1,4 @@
+using Application.Common;
 using Domain.Entities;
 using Domain.Enums;
 using Domain.ValueObjects;
@@ -13,13 +14,15 @@ public interface ICourtRepository
     Task<IReadOnlyList<Court>> GetByVenueAsync(Guid venueId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Busca canchas activas pertenecientes a sedes activas según los filtros indicados.
+    /// Busca canchas activas pertenecientes a sedes activas según los filtros indicados. Si se indica
+    /// <paramref name="bounds"/>, solo se consideran las sedes dentro de ese rectángulo geográfico.
     /// </summary>
     Task<IReadOnlyList<Court>> SearchAsync(
         SportType? sportType,
         SurfaceType? surfaceType,
         bool? isIndoor,
         Money? maxPricePerHour,
+        GeoBounds? bounds,
         CancellationToken cancellationToken);
 
     Task AddAsync(Court court, CancellationToken cancellationToken);

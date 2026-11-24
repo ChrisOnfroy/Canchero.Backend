@@ -7,6 +7,7 @@ using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Courts;
 using Application.Services.Common;
 using Application.Mappers;
+using Domain.Entities;
 using Domain.ValueObjects;
 using FluentValidation;
 
@@ -63,12 +64,14 @@ public sealed class SearchNearbyCourtsService(
             request.SurfaceType,
             request.IsIndoor,
             maxPrice,
+            GeoBounds.Around(coordinates, request.RadiusKm),
             cancellationToken);
         var venueIds = matchingCourts.Select(court => court.VenueId).Distinct().ToArray();
         var matchingVenues = await venues.GetByIdsAsync(venueIds, cancellationToken);
         var venuesById = matchingVenues.ToDictionary(venue => venue.Id);
-        var results = new List<(NearbyCourtResponse Response, double Distance, long Price)>();
 
+        // Filtro exacto por distancia y horario de la sede (el rectángulo de la consulta es aproximado).
+        var candidates = new List<(Court Court, Venue Venue, Distance Distance)>();
         foreach (var court in matchingCourts)
         {
             if (!venuesById.TryGetValue(court.VenueId, out var venue))
@@ -82,17 +85,28 @@ public sealed class SearchNearbyCourtsService(
                 continue;
             }
 
-            if (slot is not null)
+            if (slot is not null && !venue.IsOpenDuring(slot))
             {
-                if (!venue.IsOpenDuring(slot))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                if (await reservations.ExistsActiveConflictAsync(court.Id, slot, cancellationToken))
-                {
-                    continue;
-                }
+            candidates.Add((court, venue, distance));
+        }
+
+        // Una sola consulta para saber qué canchas candidatas ya están ocupadas en la franja.
+        IReadOnlySet<Guid> busyCourtIds = slot is null || candidates.Count == 0
+            ? new HashSet<Guid>()
+            : await reservations.GetCourtIdsWithActiveConflictAsync(
+                candidates.Select(candidate => candidate.Court.Id).ToArray(),
+                slot,
+                cancellationToken);
+
+        var results = new List<(NearbyCourtResponse Response, double Distance, long Price)>();
+        foreach (var (court, venue, distance) in candidates)
+        {
+            if (busyCourtIds.Contains(court.Id))
+            {
+                continue;
             }
 
             long? slotPrice = slot is null ? null : court.CalculatePrice(slot).Amount;

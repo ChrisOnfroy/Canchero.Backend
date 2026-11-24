@@ -86,6 +86,36 @@ public sealed class ReservationRepository(AppDbContext context) : IReservationRe
             && reservation.TimeSlot.End > slot.Start,
             cancellationToken);
 
+    public async Task<IReadOnlySet<Guid>> GetCourtIdsWithActiveConflictAsync(
+        IReadOnlyCollection<Guid> courtIds,
+        TimeSlot slot,
+        CancellationToken cancellationToken)
+    {
+        if (courtIds.Count == 0)
+        {
+            return new HashSet<Guid>();
+        }
+
+        var conflicting = await context.Reservations
+            .AsNoTracking()
+            .Where(reservation =>
+                courtIds.Contains(reservation.CourtId)
+                && (reservation.Status == ReservationStatus.Pending
+                    || reservation.Status == ReservationStatus.Confirmed)
+                && reservation.TimeSlot.Start < slot.End
+                && reservation.TimeSlot.End > slot.Start)
+            .Select(reservation => reservation.CourtId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        return conflicting.ToHashSet();
+    }
+
+    public Task<int> CountPendingByUserAsync(Guid userId, CancellationToken cancellationToken)
+        => context.Reservations.AsNoTracking().CountAsync(
+            reservation => reservation.UserId == userId
+                && reservation.Status == ReservationStatus.Pending,
+            cancellationToken);
+
     public async Task AddAsync(Reservation reservation, CancellationToken cancellationToken)
         => await context.Reservations.AddAsync(reservation, cancellationToken);
 }

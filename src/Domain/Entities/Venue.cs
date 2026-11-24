@@ -163,6 +163,24 @@ public sealed class Venue : Entity
     }
 
     /// <summary>
+    /// Verifica que el intervalo esté formado por horas completas contadas desde la hora de apertura
+    /// de la sede, que es la misma cuadrícula que usa la consulta de disponibilidad.
+    /// </summary>
+    public void EnsureFitsHourlyGrid(TimeSlot timeSlot)
+    {
+        Guard.AgainstNull(timeSlot, nameof(timeSlot));
+        var localStart = ToVenueLocalTime(timeSlot.Start);
+        var startsOnWholeMinute = localStart.TimeOfDay.Ticks % TimeSpan.TicksPerMinute == 0;
+        var minutesFromOpening = localStart.Hour * 60 + localStart.Minute - OpeningTime.ToMinutes();
+        var wholeHours = (timeSlot.End - timeSlot.Start).Ticks % TimeSpan.TicksPerHour == 0;
+        if (!startsOnWholeMinute || minutesFromOpening % 60 != 0 || !wholeHours)
+        {
+            throw new BusinessRuleException(
+                $"Las reservas deben ser de horas completas y comenzar en un múltiplo de una hora desde la apertura de la sede ({OpeningTime}).");
+        }
+    }
+
+    /// <summary>
     /// Convierte un instante a la hora local de la sede.
     /// </summary>
     public DateTimeOffset ToVenueLocalTime(DateTimeOffset instant)

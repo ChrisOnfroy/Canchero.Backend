@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Presentation.Errors;
+using Presentation.Workers;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 var configuredEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
@@ -41,6 +42,7 @@ builder.Services
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddHostedService<PendingReservationExpirationWorker>();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();

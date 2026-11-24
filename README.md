@@ -100,6 +100,9 @@ No guardes contraseñas ni secretos reales en `appsettings*.json` ni en el repos
 | `Geocoding__CountryCodes` | No | Códigos de país para filtrar geocodificación. Predeterminado: `co`. |
 | `Geocoding__CacheMinutes` | No | Duración de caché de resultados. Predeterminado: `60`. |
 | `Geocoding__TimeoutSeconds` | No | Tiempo máximo de espera del proveedor. Predeterminado: `10`. |
+| `Reservations__PendingExpirationMinutes` | No | Minutos que una reserva puede seguir `Pending` antes de cancelarse automáticamente. Predeterminado: `30`. |
+| `Reservations__SweepIntervalSeconds` | No | Segundos entre cada revisión de reservas vencidas. Predeterminado: `60`. |
+| `RateLimiting__SearchPermitsPerMinute` | No | Búsquedas de canchas permitidas por usuario y minuto. Predeterminado: `30`. |
 | `Admin__Email`, `Admin__Password`, `Admin__FirstName`, `Admin__LastName` | No | Si se establecen todos, crea el administrador inicial durante el seeding. Deben configurarse como secretos. |
 
 Para permitir un frontend, configura solo sus orígenes concretos. Ejemplo para una instancia productiva:
@@ -230,6 +233,7 @@ Los errores se devuelven como `application/problem+json` (RFC 7807) mediante un 
 | `404` | El recurso solicitado no existe. |
 | `409` | Conflicto con el estado actual, por ejemplo una franja ya reservada o un email duplicado. |
 | `422` | Se incumple una regla de negocio, por ejemplo una transición de estado de reserva no permitida. |
+| `429` | Se superó el límite de búsquedas por minuto; la respuesta incluye `Retry-After`. |
 | `502` | Falla el proveedor externo de geocodificación (Nominatim). |
 | `500` | Error no previsto. En Development incluye el detalle de la excepción; fuera de Development, un mensaje genérico. |
 
@@ -356,11 +360,14 @@ La reserva se crea en estado `Pending`. El actor autenticado se asigna desde el 
 - **Cancha (Court):** pertenece a una sede, define deporte, superficie, capacidad, precio por hora, moneda, si es cubierta y estado (`Active`, `Inactive`, `Maintenance`).
 - **Reserva (Reservation):** relaciona usuario y cancha, intervalo de tiempo, valor total, moneda, estado y motivo opcional de cancelación.
 - Una reserva nueva empieza en `Pending`; solo una cancha reservable en una sede activa y abierta puede reservarse.
+- Las reservas son de horas completas, contadas desde la hora de apertura de la sede (la misma cuadrícula que devuelve la disponibilidad), y duran como máximo 4 horas.
+- Un usuario puede tener como máximo 5 reservas `Pending` a la vez. Una reserva que sigue `Pending` pasados `Reservations:PendingExpirationMinutes` minutos, o cuyo horario ya empezó, se cancela automáticamente con el motivo "Expirada por falta de confirmación.".
+- Una reserva no puede cancelarse después de que su horario terminó.
 - No se permiten reservas activas que se solapen para la misma cancha. La base de datos tiene una restricción de exclusión para proteger contra concurrencia.
 - La disponibilidad se calcula en franjas de una hora dentro del horario de la sede.
 - Transiciones de reserva: `Pending` puede confirmarse o cancelarse; `Confirmed` puede cancelarse, completarse tras finalizar o marcarse como inasistencia tras su inicio.
 - El cambio de email y el registro coordinan Identity y el perfil de dominio dentro de una transacción.
-- La geocodificación por texto usa Nominatim con caché y limita las consultas para respetar el proveedor.
+- La geocodificación por texto usa Nominatim con caché y limita las consultas para respetar el proveedor. La búsqueda de canchas filtra las sedes por un rectángulo geográfico en la base de datos antes de calcular la distancia exacta, y está limitada por usuario (`RateLimiting:SearchPermitsPerMinute`).
 
 ## Estructura de la solución
 

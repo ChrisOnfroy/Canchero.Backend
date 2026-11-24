@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 using System.Text;
 using System.Text.Json.Serialization;
 using Application;
@@ -7,6 +9,7 @@ using Infrastructure.Context;
 using Infrastructure.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -45,6 +48,48 @@ builder.Services.AddControllers()
 builder.Services.AddHostedService<PendingReservationExpirationWorker>();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    // La búsqueda puede disparar una consulta al geocodificador externo, que es lento y está
+    // limitado a una petición por segundo: se limita por usuario autenticado.
+    options.AddPolicy("search", httpContext =>
+    {
+        var permits = httpContext.RequestServices
+            .GetRequiredService<IConfiguration>()
+            .GetValue("RateLimiting:SearchPermitsPerMinute", 30);
+        return RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "anonymous",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = Math.Max(permits, 1),
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            });
+    });
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter =
+                ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.RequestServices
+            .GetRequiredService<IProblemDetailsService>()
+            .TryWriteAsync(new ProblemDetailsContext
+            {
+                HttpContext = context.HttpContext,
+                ProblemDetails =
+                {
+                    Status = StatusCodes.Status429TooManyRequests,
+                    Title = "Demasiadas solicitudes.",
+                    Detail = "Superaste el límite de búsquedas por minuto. Inténtalo de nuevo en unos segundos."
+                }
+            });
+    };
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(options =>
 {
@@ -167,6 +212,7 @@ app.UseCors("ConfiguredOrigins");
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }))

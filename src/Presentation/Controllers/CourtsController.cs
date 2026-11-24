@@ -4,6 +4,7 @@ using Application.DTOs.Courts.Responses;
 using Application.Interfaces.Services.Courts;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Presentation.Controllers;
 
@@ -27,6 +28,7 @@ public sealed class CourtsController(
     public async Task<ActionResult<CourtResponse>> Get(Guid id, CancellationToken ct) =>
         Ok(await get.ExecuteAsync(new GetCourtByIdRequest(ActorId(), id), ct));
     [HttpGet("search")]
+    [EnableRateLimiting("search")]
     public async Task<ActionResult<SearchNearbyCourtsResponse>> Search([FromQuery] SearchNearbyCourtsRequest request, CancellationToken ct) =>
         Ok(await search.ExecuteAsync(request with { ActorUserId = ActorId() }, ct));
     private Guid ActorId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);

@@ -40,7 +40,7 @@ dotnet run --project src/Presentation/Presentation.csproj --launch-profile http
 
 En Development, la API queda en `http://localhost:5293`, Swagger en `http://localhost:5293/swagger` y el estado de salud en `http://localhost:5293/health`.
 
-El perfil `http` establece Development mediante `launchSettings.json`. Si se ejecuta directamente el binario sin definir entorno, la aplicación también usa Development de forma predeterminada para facilitar la ejecución local. Para despliegues se debe definir explícitamente `ASPNETCORE_ENVIRONMENT=Production`.
+El perfil `http` establece Development mediante `launchSettings.json`. Si se ejecuta directamente el binario sin definir entorno, la aplicación usa Development (y registra una advertencia) para facilitar la ejecución local; dentro de un contenedor (`DOTNET_RUNNING_IN_CONTAINER=true`, como en las imágenes oficiales de .NET) el valor por defecto es Production. Para despliegues se debe definir explícitamente `ASPNETCORE_ENVIRONMENT=Production`.
 
 La aplicación no aplica migraciones automáticamente por defecto (`Database:Migrate=false`). Para una base nueva, configura primero PostgreSQL y ejecuta la sección [Migraciones](#aplicar-migraciones-al-arrancar).
 
@@ -88,7 +88,7 @@ No guardes contraseñas ni secretos reales en `appsettings*.json` ni en el repos
 | Clave | Obligatoria | Descripción |
 |---|---:|---|
 | `ConnectionStrings__DefaultConnection` | Sí en entornos distintos a Development | Cadena de conexión PostgreSQL. En Development hay un valor local predeterminado sin contraseña. |
-| `Jwt__SecretKey` | Sí fuera de Development | Clave de firma JWT de al menos 32 caracteres. En Development se genera temporalmente si falta. |
+| `Jwt__SecretKey` | Sí fuera de Development | Clave de firma JWT de al menos 32 caracteres. No se acepta el valor de ejemplo (que contiene "CAMBIAR") fuera de Development. En Development se genera temporalmente si falta. |
 | `Jwt__Issuer` | No | Emisor esperado del token. Predeterminado: `Canchero`. |
 | `Jwt__Audience` | No | Audiencia esperada del token. Predeterminado: `Canchero`. |
 | `Jwt__ExpirationMinutes` | No | Vigencia del token en minutos. Predeterminado: `60`. |
@@ -197,7 +197,7 @@ Las respuestas de creación, actualización y consulta devuelven objetos JSON. E
 
 | Método | Ruta | Autenticación | Descripción |
 |---|---|---:|---|
-| `GET` | `/health` | No | Comprueba que el proceso HTTP responde; no verifica la conexión a PostgreSQL. |
+| `GET` | `/health` | No | Comprueba que la API responde y que puede conectarse a PostgreSQL. Devuelve `{ "status": "Healthy" }`, o `503` con `Unhealthy` si la base de datos no responde. |
 | `POST` | `/api/auth/register` | No | Registra un usuario `Customer` o `VenueOwner`. |
 | `POST` | `/api/auth/login` | No | Valida credenciales y devuelve token JWT. |
 | `GET` | `/api/users/{id}` | Sí | Consulta el perfil propio; Admin puede consultar otro perfil. |

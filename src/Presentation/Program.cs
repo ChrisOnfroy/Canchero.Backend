@@ -9,23 +9,32 @@ using Infrastructure.Context;
 using Infrastructure.Settings;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Presentation.Errors;
+using Presentation.Health;
 using Presentation.Workers;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 var configuredEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
     ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+// Al ejecutar el binario directamente (por ejemplo, desde Rider) se carga por defecto la
+// configuración local (Development). Dentro de un contenedor (imágenes oficiales de .NET) el
+// valor por defecto es Production, para que un despliegue al que se le olvide la variable no
+// quede con Swagger abierto ni con la configuración de desarrollo.
+var runningInContainer = string.Equals(
+    Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER"),
+    "true",
+    StringComparison.OrdinalIgnoreCase);
+var environmentWasDefaulted = string.IsNullOrWhiteSpace(configuredEnvironment);
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,
-    // Al ejecutar el binario directamente (por ejemplo, desde Rider), carga por defecto
-    // la configuración local. Los despliegues deben declarar explícitamente su entorno.
-    EnvironmentName = string.IsNullOrWhiteSpace(configuredEnvironment)
-        ? Environments.Development
+    EnvironmentName = environmentWasDefaulted
+        ? (runningInContainer ? Environments.Production : Environments.Development)
         : configuredEnvironment
 });
 
@@ -38,6 +47,15 @@ if (builder.Environment.IsDevelopment()
     });
 }
 
+if (!builder.Environment.IsDevelopment()
+    && (builder.Configuration["Jwt:SecretKey"] ?? string.Empty)
+        .Contains("CAMBIAR", StringComparison.OrdinalIgnoreCase))
+{
+    // Evita desplegar con la clave de ejemplo de la documentación, que es pública.
+    throw new InvalidOperationException(
+        "Jwt:SecretKey contiene el valor de ejemplo. Configura una clave secreta propia.");
+}
+
 builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
@@ -46,6 +64,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddHostedService<PendingReservationExpirationWorker>();
+builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database");
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddRateLimiter(options =>
@@ -215,10 +234,17 @@ app.UseAuthorization();
 app.UseRateLimiter();
 
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { status = "Healthy" }))
+app.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        // Se conserva el formato { "status": "Healthy" }; si la base de datos no responde, 503.
+        ResponseWriter = (context, report) =>
+        {
+            context.Response.ContentType = "application/json";
+            return context.Response.WriteAsJsonAsync(new { status = report.Status.ToString() });
+        }
+    })
     .WithTags("Health")
-    .WithSummary("Comprueba el estado de la API.")
-    .Produces(StatusCodes.Status200OK)
+    .WithSummary("Comprueba el estado de la API y su conexión con la base de datos.")
     .AllowAnonymous();
 
 if (app.Environment.IsDevelopment())
@@ -226,6 +252,12 @@ if (app.Environment.IsDevelopment())
     app.MapGet("/", () => Results.Redirect("/swagger"))
         .ExcludeFromDescription()
         .AllowAnonymous();
+}
+
+if (environmentWasDefaulted && app.Environment.IsDevelopment())
+{
+    app.Logger.LogWarning(
+        "ASPNETCORE_ENVIRONMENT no está definido: se usa Development. En despliegues defínelo explícitamente.");
 }
 
 app.Run();

@@ -13,6 +13,12 @@ namespace Infrastructure.Identity;
 public sealed class IdentityService(
     UserManager<ApplicationUser> userManager) : IIdentityService
 {
+    // Se usa para que el login tarde lo mismo exista o no la cuenta (evita deducir qué emails están registrados).
+    private static readonly PasswordHasher<ApplicationUser> DummyHasher = new();
+    private static readonly ApplicationUser DummyUser = new();
+    private static readonly string DummyPasswordHash =
+        DummyHasher.HashPassword(DummyUser, Guid.NewGuid().ToString("N"));
+
     public async Task CreateAccountAsync(
         Guid userId,
         Email email,
@@ -56,6 +62,7 @@ public sealed class IdentityService(
         var applicationUser = await userManager.FindByEmailAsync(email);
         if (applicationUser is null || await userManager.IsLockedOutAsync(applicationUser))
         {
+            DummyHasher.VerifyHashedPassword(DummyUser, DummyPasswordHash, password);
             return null;
         }
 

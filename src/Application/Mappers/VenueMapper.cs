@@ -25,5 +25,6 @@ public static class VenueMapper
             venue.OpeningTime.Minute,
             venue.ClosingTime.Hour,
             venue.ClosingTime.Minute,
+            venue.TimeZoneId,
             venue.IsActive);
 }

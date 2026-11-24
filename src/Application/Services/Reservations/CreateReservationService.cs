@@ -6,6 +6,7 @@ using Application.Interfaces.Services.Reservations;
 using Application.Mappers;
 using Application.Services.Common;
 using Domain.Entities;
+using Domain.Errors;
 using Domain.ValueObjects;
 using FluentValidation;
 
@@ -46,6 +47,14 @@ public sealed class CreateReservationService(
         if (!venue.IsActive || !venue.IsOpenDuring(slot))
         {
             throw new ConflictException("La sede no está abierta durante el horario solicitado.");
+        }
+
+        venue.EnsureFitsHourlyGrid(slot);
+
+        if (await reservations.CountPendingByUserAsync(actor.Id, cancellationToken) >= Reservation.MaxPendingPerUser)
+        {
+            throw new BusinessRuleException(
+                $"Ya tienes {Reservation.MaxPendingPerUser} reservas pendientes de confirmación. Espera su confirmación o cancela alguna.");
         }
 
         if (await reservations.ExistsActiveConflictAsync(court.Id, slot, cancellationToken))

@@ -18,4 +18,5 @@ public sealed record UpdateVenueRequest(
     int OpeningHour,
     int OpeningMinute,
     int ClosingHour,
-    int ClosingMinute);
+    int ClosingMinute,
+    string? TimeZoneId = null);

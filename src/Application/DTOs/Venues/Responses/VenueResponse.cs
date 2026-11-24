@@ -19,4 +19,5 @@ public sealed record VenueResponse(
     int OpeningMinute,
     int ClosingHour,
     int ClosingMinute,
+    string TimeZoneId,
     bool IsActive);

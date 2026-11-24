@@ -1,6 +1,7 @@
 using Application.DTOs.Reservations.Requests;
 using Application.DTOs.Reservations.Responses;
 using Application.Errors;
+using Application.Interfaces.Common;
 using Application.Interfaces.Repositories;
 using Application.Interfaces.Services.Reservations;
 using Application.Mappers;
@@ -18,6 +19,7 @@ public sealed class CancelReservationService(
     ICourtRepository courts,
     IVenueRepository venues,
     IUnitOfWork unitOfWork,
+    IDateTimeProvider dateTimeProvider,
     IValidator<CancelReservationRequest> validator) : ICancelReservationService
 {
     public async Task<ReservationResponse> ExecuteAsync(
@@ -38,7 +40,7 @@ public sealed class CancelReservationService(
             ServiceAuthorization.EnsureVenueManagement(actor, venue);
         }
 
-        reservation.Cancel(request.Reason);
+        reservation.Cancel(request.Reason, dateTimeProvider.UtcNow);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return reservation.ToResponse();
     }

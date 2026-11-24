@@ -83,6 +83,14 @@ public static class DependencyInjection
                 "La configuración Geocoding requiere BaseUrl HTTP(S), UserAgent, CountryCodes y duraciones positivas.")
             .ValidateOnStart();
 
+        services.AddOptions<ReservationSettings>()
+            .Bind(configuration.GetSection("Reservations"))
+            .Validate(settings =>
+                    settings.PendingExpirationMinutes > 0
+                    && settings.SweepIntervalSeconds > 0,
+                "La configuración Reservations requiere duraciones positivas.")
+            .ValidateOnStart();
+
         services.AddOptions<AdminSeedSettings>()
             .Bind(configuration.GetSection("Admin"))
             .Validate(settings =>

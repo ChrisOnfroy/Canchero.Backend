@@ -29,13 +29,13 @@ public sealed class LoginService(
 
         if (userId is null)
         {
-            throw new ForbiddenException(InvalidCredentialsMessage);
+            throw new UnauthorizedException(InvalidCredentialsMessage);
         }
 
         var user = await users.GetByIdAsync(userId.Value, cancellationToken);
         if (user is null || !user.IsActive)
         {
-            throw new ForbiddenException(InvalidCredentialsMessage);
+            throw new UnauthorizedException(InvalidCredentialsMessage);
         }
 
         var accessToken = tokens.GenerateAccessToken(user.Id, user.Email, user.Role);

@@ -39,5 +39,19 @@ public interface IReservationRepository
         TimeSlot slot,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Obtiene, en una sola consulta, los identificadores de las canchas indicadas que tienen una
+    /// reserva activa superpuesta con el intervalo.
+    /// </summary>
+    Task<IReadOnlySet<Guid>> GetCourtIdsWithActiveConflictAsync(
+        IReadOnlyCollection<Guid> courtIds,
+        TimeSlot slot,
+        CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Cuenta las reservas de un usuario que están pendientes de confirmación.
+    /// </summary>
+    Task<int> CountPendingByUserAsync(Guid userId, CancellationToken cancellationToken);
+
     Task AddAsync(Reservation reservation, CancellationToken cancellationToken);
 }

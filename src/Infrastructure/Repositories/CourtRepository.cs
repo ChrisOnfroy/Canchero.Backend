@@ -1,3 +1,4 @@
+using Application.Common;
 using Application.Interfaces.Repositories;
 using Domain.Entities;
 using Domain.Enums;
@@ -27,12 +28,27 @@ public sealed class CourtRepository(AppDbContext context) : ICourtRepository
         SurfaceType? surfaceType,
         bool? isIndoor,
         Money? maxPricePerHour,
+        GeoBounds? bounds,
         CancellationToken cancellationToken)
     {
+        var activeVenues = context.Venues.AsNoTracking().Where(venue => venue.IsActive);
+        if (bounds is not null)
+        {
+            activeVenues = activeVenues.Where(venue =>
+                venue.Coordinates.Latitude >= bounds.MinLatitude
+                && venue.Coordinates.Latitude <= bounds.MaxLatitude);
+            if (bounds.MinLongitude is { } minLongitude && bounds.MaxLongitude is { } maxLongitude)
+            {
+                activeVenues = activeVenues.Where(venue =>
+                    venue.Coordinates.Longitude >= minLongitude
+                    && venue.Coordinates.Longitude <= maxLongitude);
+            }
+        }
+
         var query =
             from court in context.Courts.AsNoTracking()
-            join venue in context.Venues.AsNoTracking() on court.VenueId equals venue.Id
-            where court.Status == CourtStatus.Active && venue.IsActive
+            join venue in activeVenues on court.VenueId equals venue.Id
+            where court.Status == CourtStatus.Active
             select court;
 
         if (sportType.HasValue)

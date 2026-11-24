@@ -10,6 +10,21 @@ namespace Domain.Entities;
 /// </summary>
 public sealed class Reservation : Entity
 {
+    /// <summary>
+    /// Duración máxima de una reserva, en horas.
+    /// </summary>
+    public const int MaxDurationHours = 4;
+
+    /// <summary>
+    /// Cantidad máxima de reservas pendientes de confirmación que puede tener un usuario.
+    /// </summary>
+    public const int MaxPendingPerUser = 5;
+
+    /// <summary>
+    /// Motivo que se registra cuando una reserva pendiente vence sin ser confirmada.
+    /// </summary>
+    public const string PendingExpirationReason = "Expirada por falta de confirmación.";
+
     private Reservation()
     {
     }
@@ -29,6 +44,11 @@ public sealed class Reservation : Entity
 
         Guard.AgainstNull(timeSlot, nameof(timeSlot));
         Guard.AgainstNull(totalPrice, nameof(totalPrice));
+        if (timeSlot.DurationInMinutes > MaxDurationHours * 60)
+        {
+            throw new BusinessRuleException($"Una reserva no puede durar más de {MaxDurationHours} horas.");
+        }
+
         if (totalPrice.IsZero)
         {
             throw new ValidationException("El precio total debe ser mayor que cero.");
@@ -59,11 +79,16 @@ public sealed class Reservation : Entity
         Touch(DateTimeOffset.UtcNow);
     }
 
-    public void Cancel(string? reason)
+    public void Cancel(string? reason, DateTimeOffset now)
     {
         if (Status is not ReservationStatus.Pending and not ReservationStatus.Confirmed)
         {
             throw InvalidTransition("cancelar");
+        }
+
+        if (now >= TimeSlot.End)
+        {
+            throw new BusinessRuleException("No se puede cancelar una reserva cuyo horario ya finalizó.");
         }
 
         if (reason is not null)
@@ -73,7 +98,7 @@ public sealed class Reservation : Entity
 
         Status = ReservationStatus.Cancelled;
         CancellationReason = reason?.Trim();
-        Touch(DateTimeOffset.UtcNow);
+        Touch(now);
     }
 
     public void Complete(DateTimeOffset now)
@@ -113,8 +138,7 @@ public sealed class Reservation : Entity
     public bool ConflictsWith(TimeSlot other)
     {
         Guard.AgainstNull(other, nameof(other));
-        return Status is not ReservationStatus.Cancelled
-            && TimeSlot.OverlapsWith(other);
+        return IsActive() && TimeSlot.OverlapsWith(other);
     }
 
     private BusinessRuleException InvalidTransition(string action)

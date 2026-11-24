@@ -30,42 +30,25 @@ public sealed class GetCourtAvailabilityService(
             ?? throw new NotFoundException("No se encontró la cancha solicitada.");
         var venue = await venues.GetByIdAsync(court.VenueId, cancellationToken)
             ?? throw new NotFoundException("No se encontró la sede de la cancha.");
-        var dayStart = new DateTimeOffset(
-            request.Day.Year,
-            request.Day.Month,
-            request.Day.Day,
-            0,
-            0,
-            0,
-            request.Day.Offset);
+        // El día consultado es la fecha de calendario enviada por el cliente; el horario de la sede
+        // se interpreta siempre en la zona horaria de la sede, no en la del servidor.
+        var date = DateOnly.FromDateTime(request.Day.DateTime);
+        var midnight = new TimeOfDay(0, 0);
+        var dayStart = venue.AtVenueLocalTime(date, midnight);
         if (!court.IsBookable() || !venue.IsActive)
         {
             return new GetCourtAvailabilityResponse(court.Id, dayStart, Array.Empty<AvailableTimeSlotResponse>());
         }
 
-        var dayEnd = dayStart.AddDays(1);
+        var dayEnd = venue.AtVenueLocalTime(date.AddDays(1), midnight);
         var activeReservations = await reservations.GetActiveByCourtAndDayAsync(
             court.Id,
             dayStart,
             dayEnd,
             cancellationToken);
 
-        var opening = new DateTimeOffset(
-            request.Day.Year,
-            request.Day.Month,
-            request.Day.Day,
-            venue.OpeningTime.Hour,
-            venue.OpeningTime.Minute,
-            0,
-            request.Day.Offset);
-        var closing = new DateTimeOffset(
-            request.Day.Year,
-            request.Day.Month,
-            request.Day.Day,
-            venue.ClosingTime.Hour,
-            venue.ClosingTime.Minute,
-            0,
-            request.Day.Offset);
+        var opening = venue.AtVenueLocalTime(date, venue.OpeningTime);
+        var closing = venue.AtVenueLocalTime(date, venue.ClosingTime);
         var availableSlots = new List<AvailableTimeSlotResponse>();
 
         for (var start = opening; start.AddHours(1) <= closing; start = start.AddHours(1))

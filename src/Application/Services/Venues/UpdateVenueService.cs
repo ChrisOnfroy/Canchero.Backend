@@ -38,6 +38,10 @@ public sealed class UpdateVenueService(
         venue.ChangeSchedule(
             new TimeOfDay(request.OpeningHour, request.OpeningMinute),
             new TimeOfDay(request.ClosingHour, request.ClosingMinute));
+        if (request.TimeZoneId is not null)
+        {
+            venue.ChangeTimeZone(request.TimeZoneId);
+        }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return venue.ToResponse();

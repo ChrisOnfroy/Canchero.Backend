@@ -190,7 +190,7 @@ La política de contraseñas de Identity exige mínimo 8 caracteres, al menos un
 
 Las enumeraciones se envían como texto JSON, por ejemplo `"VenueOwner"`, `"Football5"`, `"COP"` o `"Pending"`.
 
-Las respuestas de creación, actualización y consulta devuelven objetos JSON. El registro devuelve `204 No Content`; el login devuelve `200 OK` con `token`, `expiresAt` y `user`. La API todavía no tiene un middleware común que traduzca todas las excepciones de dominio y aplicación a respuestas HTTP específicas; algunos errores de validación o reglas de negocio pueden aparecer como `500` hasta que se implemente ese manejo centralizado.
+Las respuestas de creación, actualización y consulta devuelven objetos JSON. El registro devuelve `204 No Content`; el login devuelve `200 OK` con `token`, `expiresAt` y `user`.
 
 | Método | Ruta | Autenticación | Descripción |
 |---|---|---:|---|
@@ -218,6 +218,21 @@ Las respuestas de creación, actualización y consulta devuelven objetos JSON. E
 | `POST` | `/api/reservations/{id}/complete` | Sí | Completa una reserva confirmada después de su horario; propietario de sede o Admin. |
 | `POST` | `/api/reservations/{id}/no-show` | Sí | Marca una reserva confirmada como inasistencia después de su inicio; propietario de sede o Admin. |
 
+### Errores
+
+Los errores se devuelven como `application/problem+json` (RFC 7807) mediante un manejador global de excepciones:
+
+| Código | Cuándo ocurre |
+|---:|---|
+| `400` | Datos inválidos (validación de campos o invariantes del dominio). En validaciones de campos, `errors` agrupa los mensajes por propiedad. |
+| `401` | Credenciales inválidas al iniciar sesión, o token ausente/inválido. |
+| `403` | El usuario autenticado no tiene permiso para la operación. |
+| `404` | El recurso solicitado no existe. |
+| `409` | Conflicto con el estado actual, por ejemplo una franja ya reservada o un email duplicado. |
+| `422` | Se incumple una regla de negocio, por ejemplo una transición de estado de reserva no permitida. |
+| `502` | Falla el proveedor externo de geocodificación (Nominatim). |
+| `500` | Error no previsto. En Development incluye el detalle de la excepción; fuera de Development, un mensaje genérico. |
+
 ### Parámetros de búsqueda de canchas
 
 `GET /api/courts/search` admite estos query parameters:
@@ -241,7 +256,7 @@ Ejemplo: `/api/courts/search?latitude=4.6097&longitude=-74.0817&radiusKm=10&spor
 
 Las listas paginadas devuelven `items`, `page`, `pageSize`, `totalCount` y `totalPages`. Los parámetros de paginación aceptan `page >= 1` y `pageSize` entre 1 y 50.
 
-Las fechas se envían como ISO-8601 con zona horaria/offset, por ejemplo `2026-11-24T09:00:00-05:00`. En disponibilidad, el offset de `day` sirve como referencia para el día local consultado.
+Las fechas se envían como ISO-8601 con zona horaria/offset, por ejemplo `2026-11-24T09:00:00-05:00`; el instante se convierte a la zona horaria de la sede para validar su horario. En disponibilidad, `day` indica la fecha de calendario consultada (se usa la fecha tal como llega, sin convertirla) y las franjas se calculan en la zona horaria de la sede.
 
 ## Ejemplos de uso
 
@@ -294,11 +309,12 @@ curl -i -X POST http://localhost:5293/api/venues \
     "openingHour": 8,
     "openingMinute": 0,
     "closingHour": 22,
-    "closingMinute": 0
+    "closingMinute": 0,
+    "timeZoneId": "America/Bogota"
   }'
 ```
 
-La respuesta contiene el `id` de la sede; úsalo como `venueId` al crear una cancha.
+`timeZoneId` es opcional (predeterminado `America/Bogota`). La respuesta contiene el `id` de la sede; úsalo como `venueId` al crear una cancha.
 
 ### 4. Crear una cancha
 
@@ -336,7 +352,7 @@ La reserva se crea en estado `Pending`. El actor autenticado se asigna desde el 
 ## Modelo y reglas de negocio
 
 - **Usuario:** perfil de dominio vinculado a una cuenta Identity por el mismo identificador. Roles: `Customer`, `VenueOwner`, `Admin`.
-- **Sede (Venue):** pertenece a un usuario propietario e incluye dirección, coordenadas, teléfono, horario y estado activo.
+- **Sede (Venue):** pertenece a un usuario propietario e incluye dirección, coordenadas, teléfono, horario, zona horaria (`timeZoneId`, identificador IANA; `America/Bogota` por defecto) y estado activo. El horario de apertura y cierre siempre se interpreta en la zona horaria de la sede, sin importar la zona del servidor ni el offset con el que el cliente envíe las fechas.
 - **Cancha (Court):** pertenece a una sede, define deporte, superficie, capacidad, precio por hora, moneda, si es cubierta y estado (`Active`, `Inactive`, `Maintenance`).
 - **Reserva (Reservation):** relaciona usuario y cancha, intervalo de tiempo, valor total, moneda, estado y motivo opcional de cancelación.
 - Una reserva nueva empieza en `Pending`; solo una cancha reservable en una sede activa y abierta puede reservarse.

@@ -39,7 +39,8 @@ public sealed class CreateVenueService(
             new Coordinates(request.Latitude, request.Longitude),
             new PhoneNumber(request.PhoneNumber),
             new TimeOfDay(request.OpeningHour, request.OpeningMinute),
-            new TimeOfDay(request.ClosingHour, request.ClosingMinute));
+            new TimeOfDay(request.ClosingHour, request.ClosingMinute),
+            request.TimeZoneId);
 
         await venues.AddAsync(venue, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);

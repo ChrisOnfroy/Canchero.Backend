@@ -53,6 +53,7 @@ public sealed class VenueConfiguration : IEntityTypeConfiguration<Venue>
             time.Property(value => value.Hour).HasColumnName("closing_hour").IsRequired();
             time.Property(value => value.Minute).HasColumnName("closing_minute").IsRequired();
         });
+        builder.Property(venue => venue.TimeZoneId).HasColumnName("time_zone_id").HasMaxLength(64).IsRequired();
         builder.Property(venue => venue.IsActive).HasColumnName("is_active").IsRequired();
     }
 }

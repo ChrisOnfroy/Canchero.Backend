@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Presentation.Errors;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 var configuredEnvironment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
@@ -40,6 +41,8 @@ builder.Services
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddCors(options =>
 {
@@ -159,6 +162,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 app.UseCors("ConfiguredOrigins");
+app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
 

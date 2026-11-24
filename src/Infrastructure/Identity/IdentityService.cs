@@ -77,7 +77,7 @@ public sealed class IdentityService(
         cancellationToken.ThrowIfCancellationRequested();
         var applicationUser = await userManager.Users
             .FirstOrDefaultAsync(user => user.Id == userId, cancellationToken)
-            ?? throw new KeyNotFoundException("No se encontró la cuenta de Identity.");
+            ?? throw new Application.Errors.NotFoundException("No se encontró la cuenta de Identity.");
 
         var existingEmail = await userManager.FindByEmailAsync(newEmail.Value);
         if (existingEmail is not null && existingEmail.Id != userId)

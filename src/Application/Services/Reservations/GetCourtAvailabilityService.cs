@@ -35,9 +35,13 @@ public sealed class GetCourtAvailabilityService(
         var date = DateOnly.FromDateTime(request.Day.DateTime);
         var midnight = new TimeOfDay(0, 0);
         var dayStart = venue.AtVenueLocalTime(date, midnight);
+        // Para no cambiar el contrato con los clientes, la respuesta conserva el offset enviado en
+        // "day": "day" sigue siendo la medianoche de esa fecha en el offset del cliente y las franjas
+        // se expresan en ese mismo offset (el instante no cambia, solo su representación).
+        var responseDay = new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), request.Day.Offset);
         if (!court.IsBookable() || !venue.IsActive)
         {
-            return new GetCourtAvailabilityResponse(court.Id, dayStart, Array.Empty<AvailableTimeSlotResponse>());
+            return new GetCourtAvailabilityResponse(court.Id, responseDay, Array.Empty<AvailableTimeSlotResponse>());
         }
 
         var dayEnd = venue.AtVenueLocalTime(date.AddDays(1), midnight);
@@ -59,9 +63,11 @@ public sealed class GetCourtAvailabilityService(
                 continue;
             }
 
-            availableSlots.Add(new AvailableTimeSlotResponse(slot.Start, slot.End));
+            availableSlots.Add(new AvailableTimeSlotResponse(
+                slot.Start.ToOffset(request.Day.Offset),
+                slot.End.ToOffset(request.Day.Offset)));
         }
 
-        return new GetCourtAvailabilityResponse(court.Id, dayStart, availableSlots);
+        return new GetCourtAvailabilityResponse(court.Id, responseDay, availableSlots);
     }
 }

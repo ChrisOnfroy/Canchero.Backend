@@ -256,7 +256,7 @@ Ejemplo: `/api/courts/search?latitude=4.6097&longitude=-74.0817&radiusKm=10&spor
 
 Las listas paginadas devuelven `items`, `page`, `pageSize`, `totalCount` y `totalPages`. Los parámetros de paginación aceptan `page >= 1` y `pageSize` entre 1 y 50.
 
-Las fechas se envían como ISO-8601 con zona horaria/offset, por ejemplo `2026-11-24T09:00:00-05:00`; el instante se convierte a la zona horaria de la sede para validar su horario. En disponibilidad, `day` indica la fecha de calendario consultada (se usa la fecha tal como llega, sin convertirla) y las franjas se calculan en la zona horaria de la sede.
+Las fechas se envían como ISO-8601 con zona horaria/offset, por ejemplo `2026-11-24T09:00:00-05:00`; el instante se convierte a la zona horaria de la sede para validar su horario. En disponibilidad, `day` indica la fecha de calendario consultada (se usa la fecha tal como llega, sin convertirla); las franjas se calculan en la zona horaria de la sede y la respuesta las expresa con el mismo offset que se envió en `day`.
 
 ## Ejemplos de uso
 

@@ -1,8 +1,16 @@
-<Solution>
+﻿<Solution>
   <Folder Name="/src/">
     <Project Path="src/Application/Application.csproj" />
     <Project Path="src/Domain/Domain.csproj" />
     <Project Path="src/Infrastructure/Infrastructure.csproj" />
     <Project Path="src/Presentation/Presentation.csproj" />
   </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Canchero.Domain.UnitTest/Canchero.Domain.UnitTest.csproj" />
+    <Project Path="test/Canchero.Application.UnitTest/Canchero.Application.UnitTest.csproj" />
+    <Project Path="test/Canchero.Infrastructure.UnitTest/Canchero.Infrastructure.UnitTest.csproj" />
+    <Project Path="test/Canchero.Presentation.UnitTest/Canchero.Presentation.UnitTest.csproj" />
+    <Project Path="test/Canchero.Presentation.IntegrationTest/Canchero.Presentation.IntegrationTest.csproj" />
+  </Folder>
 </Solution>
+

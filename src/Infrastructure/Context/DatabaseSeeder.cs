@@ -38,56 +38,55 @@ public sealed class DatabaseSeeder(
         }
 
         var admin = settings.Value;
-        if (string.IsNullOrWhiteSpace(admin.Email)
-            || string.IsNullOrWhiteSpace(admin.FirstName)
-            || string.IsNullOrWhiteSpace(admin.LastName))
-        {
-            return;
-        }
-
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-        var account = await userManager.FindByEmailAsync(admin.Email);
-        User profile;
-        if (account is null)
+        if (!string.IsNullOrWhiteSpace(admin.Email)
+            && !string.IsNullOrWhiteSpace(admin.FirstName)
+            && !string.IsNullOrWhiteSpace(admin.LastName))
         {
-            var email = new Email(admin.Email);
-            profile = new User(
-                new PersonName(admin.FirstName, admin.LastName),
-                email,
-                null,
-                UserRole.Admin);
-            await context.UserProfiles.AddAsync(profile, cancellationToken);
+            var account = await userManager.FindByEmailAsync(admin.Email);
+            User profile;
+            if (account is null)
+            {
+                var email = new Email(admin.Email);
+                profile = new User(
+                    new PersonName(admin.FirstName, admin.LastName),
+                    email,
+                    null,
+                    UserRole.Admin);
+                await context.UserProfiles.AddAsync(profile, cancellationToken);
 
-            account = new ApplicationUser
+                account = new ApplicationUser
+                {
+                    Id = profile.Id,
+                    Email = email.Value,
+                    UserName = email.Value,
+                    LockoutEnabled = true
+                };
+                var createResult = await userManager.CreateAsync(account, AdminPassword);
+                EnsureSucceeded(createResult, "No fue posible crear el usuario administrador.");
+            }
+            else
             {
-                Id = profile.Id,
-                Email = email.Value,
-                UserName = email.Value,
-                LockoutEnabled = true
-            };
-            var createResult = await userManager.CreateAsync(account, AdminPassword);
-            EnsureSucceeded(createResult, "No fue posible crear el usuario administrador.");
-        }
-        else
-        {
-            profile = await context.UserProfiles.FirstOrDefaultAsync(
-                    user => user.Id == account.Id,
-                    cancellationToken)
-                ?? throw new InvalidOperationException(
-                    "La cuenta de Identity existe sin un perfil de usuario asociado. Repara la relaciÃ³n antes de sembrar.");
-            if (profile.Role != UserRole.Admin)
+                profile = await context.UserProfiles.FirstOrDefaultAsync(
+                        user => user.Id == account.Id,
+                        cancellationToken)
+                    ?? throw new InvalidOperationException(
+                        "La cuenta de Identity existe sin un perfil de usuario asociado.");
+                if (profile.Role != UserRole.Admin)
+                {
+                    throw new InvalidOperationException(
+                        "La cuenta configurada como administrador tiene un perfil con un rol diferente.");
+                }
+            }
+
+            if (!await userManager.IsInRoleAsync(account, UserRole.Admin.ToString()))
             {
-                throw new InvalidOperationException(
-                    "La cuenta configurada como administrador tiene un perfil con un rol diferente.");
+                var roleResult = await userManager.AddToRoleAsync(account, UserRole.Admin.ToString());
+                EnsureSucceeded(roleResult, "No fue posible asignar el rol de administrador.");
             }
         }
 
-        if (!await userManager.IsInRoleAsync(account, UserRole.Admin.ToString()))
-        {
-            var roleResult = await userManager.AddToRoleAsync(account, UserRole.Admin.ToString());
-            EnsureSucceeded(roleResult, "No fue posible asignar el rol de administrador.");
-        }
-
+        // Las cuentas y canchas de demo no dependen de configurar una cuenta Admin.
         await SeedDemoDataAsync(cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -96,6 +95,8 @@ public sealed class DatabaseSeeder(
 
     private async Task SeedDemoDataAsync(CancellationToken cancellationToken)
     {
+        if (await context.Venues.AnyAsync(cancellationToken)) return;
+
         // Datos de demostraciÃ³n editables: las ubicaciones son aproximadas y deben verificarse.
         var owners = new[]
         {
@@ -117,7 +118,6 @@ public sealed class DatabaseSeeder(
         foreach (var customer in customers)
             await EnsureDemoUserAsync(customer.Item1, customer.Item2, customer.Item3, UserRole.Customer, cancellationToken);
 
-        if (await context.Venues.AnyAsync(cancellationToken)) return;
         var venues = new[]
         {
             new Venue(ownerIds[0], "Complejo Deportivo Norte (demo)", "Sede de prueba; verificar direcciÃ³n y coordenadas.", new Address("Calle 98 # 52-115", "Barranquilla", "AtlÃ¡ntico", "Colombia"), new Coordinates(11.0125, -74.8280), new PhoneNumber("+573001000001"), new TimeOfDay(6,0), new TimeOfDay(23,0)),

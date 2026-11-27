@@ -114,6 +114,19 @@ public sealed class ApiIntegrationTests : IAsyncLifetime
         Assert.Equal(System.Net.HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task SeederWithoutConfiguredAdmin_CreatesDemoCatalogIdempotently()
+    {
+        await using var scope = _factory.Services.CreateAsyncScope();
+        var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedAsync();
+        await seeder.SeedAsync();
+
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.Equal(4, await db.Venues.CountAsync());
+        Assert.Equal(8, await db.Courts.CountAsync());
+    }
+
     public async Task DisposeAsync()
     {
         _client?.Dispose();
@@ -121,6 +134,7 @@ public sealed class ApiIntegrationTests : IAsyncLifetime
         await _postgres.DisposeAsync();
     }
 }
+
 
 
 

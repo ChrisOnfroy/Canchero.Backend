@@ -1,4 +1,4 @@
-# Canchero API
+﻿# Canchero API
 
 API REST para consultar canchas deportivas, administrar sedes y gestionar reservas. Está construida con .NET 10, ASP.NET Core, Entity Framework Core, PostgreSQL y ASP.NET Core Identity.
 
@@ -198,28 +198,28 @@ Las respuestas de creación, actualización y consulta devuelven objetos JSON. E
 | Método | Ruta | Autenticación | Descripción |
 |---|---|---:|---|
 | `GET` | `/health` | No | Comprueba que el proceso HTTP responde; no verifica la conexión a PostgreSQL. |
-| `POST` | `/api/auth/register` | No | Registra un usuario `Customer` o `VenueOwner`. |
-| `POST` | `/api/auth/login` | No | Valida credenciales y devuelve token JWT. |
-| `GET` | `/api/users/{id}` | Sí | Consulta el perfil propio; Admin puede consultar otro perfil. |
-| `PUT` | `/api/users/{id}/email` | Sí | Cambia el email propio; Admin puede cambiar el de otro usuario. |
-| `POST` | `/api/venues` | Sí | Crea una sede. Requiere `VenueOwner` o Admin. |
-| `GET` | `/api/venues/{id}` | Sí | Consulta una sede. |
-| `GET` | `/api/venues?ownerId={id}` | Sí | Lista sedes propias o las de otro propietario si el actor es Admin. Sin `ownerId`, consulta las propias. |
-| `PUT` | `/api/venues/{id}` | Sí | Actualiza una sede; propietario o Admin. |
-| `PATCH` | `/api/venues/{id}/status?isActive=true` | Sí | Activa o desactiva una sede; propietario o Admin. |
-| `POST` | `/api/courts` | Sí | Crea una cancha en una sede propia. Esta operación exige ser el propietario de la sede; Admin no omite esa regla. |
-| `GET` | `/api/courts/{id}` | Sí | Consulta una cancha. |
-| `GET` | `/api/courts/search` | Sí | Busca canchas cercanas y aplica filtros. |
-| `PUT` | `/api/courts/{id}` | Sí | Actualiza una cancha; propietario de la sede o Admin. |
-| `PATCH` | `/api/courts/{id}/status` | Sí | Cambia estado operativo; propietario de la sede o Admin. |
-| `POST` | `/api/reservations` | Sí | Crea una reserva pendiente. |
-| `GET` | `/api/reservations/mine` | Sí | Lista las reservas del actor. |
-| `GET` | `/api/reservations/court/{courtId}` | Sí | Lista reservas de una cancha; propietario de la sede o Admin. |
-| `GET` | `/api/reservations/court/{courtId}/availability?day={ISO-8601}` | Sí | Consulta franjas disponibles para una fecha. |
-| `POST` | `/api/reservations/{id}/cancel` | Sí | Cancela una reserva propia; propietario de sede o Admin también puede cancelarla. |
-| `POST` | `/api/reservations/{id}/confirm` | Sí | Confirma una reserva pendiente; propietario de sede o Admin. |
-| `POST` | `/api/reservations/{id}/complete` | Sí | Completa una reserva confirmada después de su horario; propietario de sede o Admin. |
-| `POST` | `/api/reservations/{id}/no-show` | Sí | Marca una reserva confirmada como inasistencia después de su inicio; propietario de sede o Admin. |
+| `POST` | `/api/v1/auth/register` | No | Registra un usuario `Customer` o `VenueOwner`. |
+| `POST` | `/api/v1/auth/login` | No | Valida credenciales y devuelve token JWT. |
+| `GET` | `/api/v1/users/{id}` | Sí | Consulta el perfil propio; Admin puede consultar otro perfil. |
+| `PUT` | `/api/v1/users/{id}/email` | Sí | Cambia el email propio; Admin puede cambiar el de otro usuario. |
+| `POST` | `/api/v1/venues` | Sí | Crea una sede. Requiere `VenueOwner` o Admin. |
+| `GET` | `/api/v1/venues/{id}` | Sí | Consulta una sede. |
+| `GET` | `/api/v1/venues?ownerId={id}` | Sí | Lista sedes propias o las de otro propietario si el actor es Admin. Sin `ownerId`, consulta las propias. |
+| `PUT` | `/api/v1/venues/{id}` | Sí | Actualiza una sede; propietario o Admin. |
+| `PATCH` | `/api/v1/venues/{id}/status?isActive=true` | Sí | Activa o desactiva una sede; propietario o Admin. |
+| `POST` | `/api/v1/courts` | Sí | Crea una cancha en una sede propia. Esta operación exige ser el propietario de la sede; Admin no omite esa regla. |
+| `GET` | `/api/v1/courts/{id}` | Sí | Consulta una cancha. |
+| `GET` | `/api/v1/courts/search` | Sí | Busca canchas cercanas y aplica filtros. |
+| `PUT` | `/api/v1/courts/{id}` | Sí | Actualiza una cancha; propietario de la sede o Admin. |
+| `PATCH` | `/api/v1/courts/{id}/status` | Sí | Cambia estado operativo; propietario de la sede o Admin. |
+| `POST` | `/api/v1/reservations` | Sí | Crea una reserva pendiente. |
+| `GET` | `/api/v1/reservations/mine` | Sí | Lista las reservas del actor. |
+| `GET` | `/api/v1/reservations/court/{courtId}` | Sí | Lista reservas de una cancha; propietario de la sede o Admin. |
+| `GET` | `/api/v1/reservations/court/{courtId}/availability?day={ISO-8601}` | Sí | Consulta franjas disponibles para una fecha. |
+| `POST` | `/api/v1/reservations/{id}/cancel` | Sí | Cancela una reserva propia; propietario de sede o Admin también puede cancelarla. |
+| `POST` | `/api/v1/reservations/{id}/confirm` | Sí | Confirma una reserva pendiente; propietario de sede o Admin. |
+| `POST` | `/api/v1/reservations/{id}/complete` | Sí | Completa una reserva confirmada después de su horario; propietario de sede o Admin. |
+| `POST` | `/api/v1/reservations/{id}/no-show` | Sí | Marca una reserva confirmada como inasistencia después de su inicio; propietario de sede o Admin. |
 
 ### Errores
 
@@ -239,7 +239,7 @@ Los errores se devuelven como `application/problem+json` (RFC 7807) mediante un 
 
 ### Parámetros de búsqueda de canchas
 
-`GET /api/courts/search` admite estos query parameters:
+`GET /api/v1/courts/search` admite estos query parameters:
 
 | Parámetro | Descripción |
 |---|---|
@@ -254,7 +254,7 @@ Los errores se devuelven como `application/problem+json` (RFC 7807) mediante un 
 | `slotStart`, `slotEnd` | Fechas ISO-8601 para filtrar disponibilidad; deben enviarse ambas y el inicio debe ser futuro. |
 | `page`, `pageSize` | Paginación; predeterminados `1` y `10`, tamaño máximo `50`. |
 
-Ejemplo: `/api/courts/search?latitude=4.6097&longitude=-74.0817&radiusKm=10&sportType=Football5&page=1&pageSize=10`.
+Ejemplo: `/api/v1/courts/search?latitude=4.6097&longitude=-74.0817&radiusKm=10&sportType=Football5&page=1&pageSize=10`.
 
 ### Paginación y fechas
 
@@ -269,7 +269,7 @@ Los siguientes ejemplos usan Bash, `curl` y la API en `http://localhost:5293`.
 ### 1. Registrar una cuenta
 
 ```bash
-curl -i -X POST http://localhost:5293/api/auth/register \
+curl -i -X POST http://localhost:5293/api/v1/auth/register \
   -H 'Content-Type: application/json' \
   -d '{
     "firstName": "Ana",
@@ -286,7 +286,7 @@ El registro devuelve `204 No Content`. Para poder iniciar sesión, las migracion
 ### 2. Iniciar sesión y guardar el token
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:5293/api/auth/login \
+TOKEN=$(curl -s -X POST http://localhost:5293/api/v1/auth/login \
   -H 'Content-Type: application/json' \
   -d '{"email":"ana@example.com","password":"ClaveSegura123"}' \
   | python3 -c 'import json,sys; print(json.load(sys.stdin)["token"])')
@@ -297,7 +297,7 @@ El login devuelve el token, su fecha de expiración y los datos básicos del usu
 ### 3. Crear una sede
 
 ```bash
-curl -i -X POST http://localhost:5293/api/venues \
+curl -i -X POST http://localhost:5293/api/v1/venues \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -323,7 +323,7 @@ curl -i -X POST http://localhost:5293/api/venues \
 ### 4. Crear una cancha
 
 ```bash
-curl -i -X POST http://localhost:5293/api/courts \
+curl -i -X POST http://localhost:5293/api/v1/courts \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -341,7 +341,7 @@ curl -i -X POST http://localhost:5293/api/courts \
 ### 5. Crear una reserva
 
 ```bash
-curl -i -X POST http://localhost:5293/api/reservations \
+curl -i -X POST http://localhost:5293/api/v1/reservations \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -414,3 +414,4 @@ La solución no contiene actualmente un proyecto de pruebas automatizadas. La co
 ```bash
 dotnet build canchero.slnx
 ```
+

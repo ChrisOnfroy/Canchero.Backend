@@ -259,3 +259,5 @@ public sealed class AllowAnonymousOperationFilter : IOperationFilter
         }
     }
 }
+
+public partial class Program;

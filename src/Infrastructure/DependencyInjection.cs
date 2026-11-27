@@ -98,13 +98,12 @@ public static class DependencyInjection
                 var values = new[]
                 {
                     settings.Email,
-                    settings.Password,
                     settings.FirstName,
                     settings.LastName
                 };
                 return values.All(string.IsNullOrWhiteSpace)
                     || values.All(value => !string.IsNullOrWhiteSpace(value));
-            }, "La sección Admin debe estar vacía o incluir Email, Password, FirstName y LastName.")
+            }, "La sección Admin debe estar vacía o incluir Email, FirstName y LastName.")
             .ValidateOnStart();
 
         services.AddHttpClient<NominatimGeocodingService>((provider, client) =>

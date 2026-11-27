@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Presentation.Controllers;
 
 [ApiController]
-[Route("api/reservations")]
+[Route("api/v1/reservations")]
 [Authorize]
 public sealed class ReservationsController(
     ICreateReservationService create, ICancelReservationService cancel, IConfirmReservationService confirm,

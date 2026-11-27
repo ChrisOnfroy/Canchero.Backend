@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Presentation.Controllers;
 
 [ApiController]
-[Route("api/auth")]
+[Route("api/v1/auth")]
 public sealed class AuthController(IRegisterUserService register, ILoginService login) : ControllerBase
 {
     [HttpPost("register")]

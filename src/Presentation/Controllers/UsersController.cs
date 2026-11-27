@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Presentation.Controllers;
 
 [ApiController]
-[Route("api/users")]
+[Route("api/v1/users")]
 [Authorize]
 public sealed class UsersController(IGetUserByIdService getUser, IChangeUserEmailService changeEmail) : ControllerBase
 {

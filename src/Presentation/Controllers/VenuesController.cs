@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Presentation.Controllers;
 
 [ApiController]
-[Route("api/venues")]
+[Route("api/v1/venues")]
 [Authorize]
 public sealed class VenuesController(
     ICreateVenueService create, IUpdateVenueService update, IChangeVenueStatusService changeStatus,

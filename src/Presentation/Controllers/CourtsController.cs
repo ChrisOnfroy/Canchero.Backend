@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.RateLimiting;
 namespace Presentation.Controllers;
 
 [ApiController]
-[Route("api/courts")]
+[Route("api/v1/courts")]
 [Authorize]
 public sealed class CourtsController(
     ICreateCourtService create, IUpdateCourtService update, IChangeCourtStatusService changeStatus,
